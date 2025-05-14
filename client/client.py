@@ -1,13 +1,17 @@
 import csv
 import time
 import requests
+from datetime import datetime
 
-SERVER_URL = 'https://smart-home-server-xxxxx-ew.a.run.app/receive_data'  # Sostituisci con il tuo vero URL
+SERVER_URL = 'https://smart-home-server-174184628218.europe-west1.run.app/receive_data'  # Sostituisci con il tuo vero URL
 
 def send_data(row):
+    unix_time = int(row['time'])  # converti stringa in intero
+    timestamp = datetime.utcfromtimestamp(unix_time).isoformat()  # es. '2016-01-01T00:00:00'
+
     payload = {
-        'timestamp': row['time'],             # 'time' = timestamp in secondi UNIX
-        'value': row['use [kW]']              # usa la colonna 'use [kW]' come valore
+        'timestamp': timestamp,
+        'value': row['use [kW]']
     }
     print("Payload da inviare:", payload)
     try:
