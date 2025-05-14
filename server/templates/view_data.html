@@ -36,19 +36,20 @@
 
     {% if data %}
     <table>
-        <tr>
-            {% for key in headers %}
-            <th>{{ key }}</th>
-            {% endfor %}
-        </tr>
-        {% for row in data %}
-        <tr>
-            {% for key in headers %}
-            <td>{{ row.get(key, '') }}</td>
-            {% endfor %}
-        </tr>
+    <tr>
+        {% for key in headers %}
+        <th>{{ key }}</th>
         {% endfor %}
+    </tr>
+    {% for row in data %}
+    <tr>
+        {% for key in headers %}
+        <td>{{ row.get(key, '') }}</td>
+        {% endfor %}
+    </tr>
+    {% endfor %}
     </table>
+
     {% else %}
         <p><strong>Nessun dato disponibile.</strong></p>
     {% endif %}
