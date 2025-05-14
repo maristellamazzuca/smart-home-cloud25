@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dati Smart Home</title>
+    <style>
+        table {border-collapse: collapse; width: 60%;}
+        th, td {border: 1px solid black; padding: 8px; text-align: center;}
+        th {background-color: #f2f2f2;}
+    </style>
+</head>
+<body>
+    <h2>Dati raccolti dalla smart home</h2>
+    <table>
+        <tr><th>Timestamp</th><th>Value</th></tr>
+        {% for item in data %}
+        <tr><td>{{ item.timestamp }}</td><td>{{ item.value }}</td></tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

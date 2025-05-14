@@ -1,8 +1,10 @@
-from flask import Flask, request
+from flask import Flask, request, render_template
+import os
 from google.cloud import firestore
 
 app = Flask(__name__)
 db = firestore.Client()
+app.template_folder = os.path.join(os.path.dirname(__file__), 'templates')
 
 # === Parte 1: Cloud Run riceve dati dal client ===
 @app.route("/receive_data", methods=["POST"])
@@ -14,7 +16,24 @@ def receive_data():
 def receive_data_cf():
     return process_data(request, "Parte 2")
 
-# Funzione condivisa da entrambi
+# === Parte 3: Visualizzazione dati via HTTP (GET) ==== 
+@app.route("/view_data", methods=["GET"])
+def view_data():
+    try:
+        doc_ref = db.collection("smarthomecloud").document("sensor1")
+        doc = doc_ref.get()
+
+        if not doc.exists:
+            return "Nessun dato trovato."
+
+        data_list = doc.to_dict().get("data", [])
+
+        return render_template("view_data.html", data=data_list)
+
+    except Exception as e:
+        return f"Errore durante la lettura dei dati: {str(e)}", 500
+
+# Funzione condivisa da parte1 e parte2
 def process_data(request, parte):
     try:
         data = request.get_json()
@@ -49,6 +68,7 @@ def process_data(request, parte):
         print(f"🔥 [{parte}] Errore server:", e)
         return f"Errore: {str(e)}", 400
 
+# --- Index generale per test ---
 @app.route("/", methods=["GET"])
 def index():
     return "Server attivo con entrambe le parti!", 200
