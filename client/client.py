@@ -2,7 +2,7 @@ import csv
 import time
 import requests
 
-SERVER_URL = 'https://smart-home-server-abcde.a.run.app/receive_data'  # aggiorna con il tuo
+SERVER_URL = 'https://NOME-DEL-SERVIZIO.a.run.app/receive_data'  # aggiorna con il tuo
 
 def send_data(row):
     payload = {
