@@ -3,16 +3,16 @@ import time
 import requests
 from datetime import datetime, timezone
 
-SERVER_URL = 'https://smart-home-server-174184628218.europe-west1.run.app/receive_data'  # metti il tuo URL qui
+SERVER_URL = 'https://smart-home-multi-xxxxx.a.run.app/receive_data'  # aggiorna con il tuo
 
 def send_data(row):
+    # Converte il timestamp Unix
     unix_time = int(row['time'])
     timestamp = datetime.fromtimestamp(unix_time, tz=timezone.utc).isoformat()
 
-    payload = {
-        'timestamp': timestamp,
-        'value': row['use [kW]']
-    }
+    # Crea un dizionario con tutti i campi, incluso il timestamp convertito
+    payload = dict(row)
+    payload['timestamp'] = timestamp
 
     headers = {
         'Content-Type': 'application/json'
@@ -21,9 +21,9 @@ def send_data(row):
     print("Payload da inviare:", payload)
     try:
         response = requests.post(SERVER_URL, json=payload, headers=headers)
-        print(f"Sent: {payload} → Status: {response.status_code} - {response.text}")
+        print(f"Status: {response.status_code}")
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Errore invio dati: {e}")
 
 def main():
     with open('client/HomeC.csv', newline='') as file:
