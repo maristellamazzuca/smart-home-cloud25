@@ -26,8 +26,13 @@ def view_data():
         if not doc.exists:
             return "Nessun dato trovato."
 
-        data_list = doc.to_dict().get("data", [])
-        data_list = sorted(data_dict["data"], key=lambda x: x.get("timestamp", ""))
+        data_dict = doc.to_dict()  # ✅ Qui era il problema!
+        data_list = data_dict.get("data", [])
+
+        # Ordina i dati per timestamp (se disponibile)
+        data_list = sorted(data_list, key=lambda x: x.get("timestamp", ""))
+
+        # Estrai le intestazioni dalla prima riga (se esiste)
         headers = sorted(data_list[0].keys()) if data_list else []
 
         return render_template("view_data.html", data=data_list, headers=headers)
