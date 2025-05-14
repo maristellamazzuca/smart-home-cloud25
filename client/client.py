@@ -11,7 +11,7 @@ def send_data(row):
 
     payload = {
         'timestamp': timestamp,
-        'value': row['use [kW]']
+        'value': row.get('use [kW]')  # Ottieni il valore dalla colonna 'use [kW]' in modo sicuro
     }
     print("Payload da inviare:", payload)
     try:

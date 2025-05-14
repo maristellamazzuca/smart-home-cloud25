@@ -8,6 +8,7 @@ db = firestore.Client()
 def receive_data():
     try:
         data = request.get_json()
+        print("📥 Dati ricevuti (raw):", data)  # Log dell'intero JSON ricevuto
         print("📥 Dati ricevuti:", data)
 
         if not data:
