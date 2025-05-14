@@ -1,18 +1,22 @@
-from flask import Flask, request
-from google.cloud import firestore
-
-app = Flask(__name__)
-db = firestore.Client()
-
 @app.route("/receive_data", methods=["POST"])
 def receive_data():
     try:
         data = request.get_json()
-        print("Dati ricevuti:", data) 
-        timestamp = data.get("timestamp")
-        value = float(data.get("value"))
+        print("Dati ricevuti:", data)  # 👈 AGGIUNTO PER DEBUG
 
-        # ✅ Usa la collezione personalizzata 'smarthomecloud'
+        timestamp = data.get("timestamp")
+        value_str = data.get("value")
+
+        if not timestamp or not value_str:
+            print("Dati mancanti:", timestamp, value_str)  # 👈 DEBUG
+            return "Dati incompleti", 400
+
+        try:
+            value = float(value_str)
+        except ValueError:
+            print("Valore non numerico:", value_str)  # 👈 DEBUG
+            return "Valore non numerico", 400
+
         doc_ref = db.collection("smarthomecloud").document("sensor1")
         new_entry = {"timestamp": timestamp, "value": value}
 
@@ -23,8 +27,5 @@ def receive_data():
 
         return "Dati ricevuti e salvati", 200
     except Exception as e:
+        print("Errore server:", e)  # 👈 DEBUG
         return f"Errore: {str(e)}", 400
-
-@app.route("/", methods=["GET"])
-def index():
-    return "Server attivo su Cloud Run!", 200
