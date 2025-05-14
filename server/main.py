@@ -8,7 +8,6 @@ db = firestore.Client()
 def receive_data():
     try:
         data = request.get_json()
-        print("📥 Dati ricevuti (raw):", data)  # Log dell'intero JSON ricevuto
         print("📥 Dati ricevuti:", data)
 
         if not data:
@@ -42,3 +41,7 @@ def receive_data():
     except Exception as e:
         print("🔥 Errore server:", e)
         return f"Errore: {str(e)}", 400
+
+@app.route("/", methods=["GET"])
+def index():
+    return "Server attivo!", 200
