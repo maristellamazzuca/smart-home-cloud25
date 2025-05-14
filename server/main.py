@@ -31,4 +31,13 @@ def receive_data():
         new_entry = {"timestamp": timestamp, "value": value}
 
         if doc_ref.get().exists:
-            doc_ref_
+            doc_ref.update({"data": firestore.ArrayUnion([new_entry])})
+        else:
+            doc_ref.set({"data": [new_entry]})
+
+        print("✅ Dato salvato:", new_entry)
+        return "Dati ricevuti e salvati", 200
+
+    except Exception as e:
+        print("🔥 Errore server:", e)
+        return f"Errore: {str(e)}", 400
