@@ -3,7 +3,7 @@ import time
 import requests
 from datetime import datetime, timezone
 
-SERVER_URL = 'https://smart-home-multi-xxxxx.a.run.app/receive_data'  # aggiorna con il tuo
+SERVER_URL = 'https://smart-home-multi-174184628218.europe-west1.run.app/receive_data'  # aggiorna con il tuo
 
 def send_data(row):
     # Converte il timestamp Unix

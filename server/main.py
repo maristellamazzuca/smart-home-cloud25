@@ -27,8 +27,10 @@ def view_data():
             return "Nessun dato trovato."
 
         data_list = doc.to_dict().get("data", [])
+        data_list = sorted(data_dict["data"], key=lambda x: x.get("timestamp", ""))
+        headers = sorted(data_list[0].keys()) if data_list else []
 
-        return render_template("view_data.html", data=data_list)
+        return render_template("view_data.html", data=data_list, headers=headers)
 
     except Exception as e:
         return f"Errore durante la lettura dei dati: {str(e)}", 500
