@@ -20,7 +20,7 @@ def receive_data_cf():
 @app.route("/view_data", methods=["GET"])
 def view_data():
     try:
-        doc_ref = db.collection("smarthomecloud").document("sensor1")
+        doc_ref = db.collection("sensors").document("sensor1")
         doc = doc_ref.get()
 
         if not doc.exists:
@@ -37,7 +37,7 @@ def view_data():
 def process_data(request, parte):
     try:
         data = request.get_json()
-        print(f"📥 [{parte}] Dati ricevuti:", data)
+        print(f" [{parte}] Dati ricevuti:", data)
 
         if not data:
             return "Bad request: JSON vuoto o malformato", 400
@@ -53,7 +53,7 @@ def process_data(request, parte):
         except ValueError:
             return "Valore non numerico", 400
 
-        doc_ref = db.collection("smarthomecloud").document("sensor1")
+        doc_ref = db.collection("sensors").document("sensor1")
         new_entry = {"timestamp": timestamp, "value": value}
 
         if doc_ref.get().exists:
@@ -61,11 +61,11 @@ def process_data(request, parte):
         else:
             doc_ref.set({"data": [new_entry]})
 
-        print(f"✅ [{parte}] Dato salvato:", new_entry)
+        print(f" [{parte}] Dato salvato:", new_entry)
         return "Dati ricevuti e salvati", 200
 
     except Exception as e:
-        print(f"🔥 [{parte}] Errore server:", e)
+        print(f" [{parte}] Errore server:", e)
         return f"Errore: {str(e)}", 400
 
 # --- Index generale per test ---
