@@ -11,7 +11,8 @@ def receive_data():
         timestamp = data.get("timestamp")
         value = float(data.get("value"))
 
-        doc_ref = db.collection("sensors").document("sensor1")
+        # ✅ Usa la collezione personalizzata 'smarthomecloud'
+        doc_ref = db.collection("smarthomecloud").document("sensor1")
         new_entry = {"timestamp": timestamp, "value": value}
 
         if doc_ref.get().exists:

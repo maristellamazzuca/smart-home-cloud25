@@ -2,7 +2,7 @@ import csv
 import time
 import requests
 
-SERVER_URL = 'https://URL-DA-CLOUD-RUN/receive_data'  # verrà aggiornato dopo il deploy
+SERVER_URL = 'https://URL-DA-CLOUD-RUN/receive_data'  # ← aggiorna dopo il deploy
 
 def send_data(row):
     payload = {
