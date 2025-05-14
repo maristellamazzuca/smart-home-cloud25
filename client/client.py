@@ -2,12 +2,12 @@ import csv
 import time
 import requests
 
-SERVER_URL = 'https://URL-DA-CLOUD-RUN/receive_data'  # ← aggiorna dopo il deploy
+SERVER_URL = 'https://smart-home-server-abcde.a.run.app/receive_data'  # aggiorna con il tuo
 
 def send_data(row):
     payload = {
-        'timestamp': row['timestamp'],
-        'value': row['value']
+        'timestamp': row['time'],             # usa 'time' invece di 'timestamp'
+        'value': row['use [kW]']              # o qualsiasi altra colonna ti interessa
     }
     try:
         response = requests.post(SERVER_URL, json=payload)
