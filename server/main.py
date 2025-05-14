@@ -8,6 +8,7 @@ db = firestore.Client()
 def receive_data():
     try:
         data = request.get_json()
+        print("Dati ricevuti:", data) 
         timestamp = data.get("timestamp")
         value = float(data.get("value"))
 

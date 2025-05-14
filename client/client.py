@@ -2,13 +2,14 @@ import csv
 import time
 import requests
 
-SERVER_URL = 'https://NOME-DEL-SERVIZIO.a.run.app/receive_data'  # aggiorna con il tuo
+SERVER_URL = 'https://smart-home-server-174184628218.europe-west1.run.app/receive_data'  # aggiorna con il tuo
 
 def send_data(row):
     payload = {
         'timestamp': row['time'],             # usa 'time' invece di 'timestamp'
         'value': row['use [kW]']              # o qualsiasi altra colonna ti interessa
     }
+    print("Payload da inviare:", payload)
     try:
         response = requests.post(SERVER_URL, json=payload)
         print(f"Sent: {payload} → Status: {response.status_code}")
