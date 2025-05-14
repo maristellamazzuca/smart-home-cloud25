@@ -2,8 +2,7 @@ import csv
 import time
 import requests
 
-# Inserirai qui l’URL della Cloud Function dopo il deploy
-SERVER_URL = 'https://URL-DELLA-TUA-FUNZIONE.cloudfunctions.net/receive_data'
+SERVER_URL = 'https://URL-DA-CLOUD-RUN/receive_data'  # verrà aggiornato dopo il deploy
 
 def send_data(row):
     payload = {
@@ -17,11 +16,11 @@ def send_data(row):
         print(f"Error: {e}")
 
 def main():
-    with open('client/data.csv', newline='') as file:
+    with open('client/HomeC.csv', newline='') as file:
         reader = csv.DictReader(file)
         for row in reader:
             send_data(row)
-            time.sleep(3)  # invia un dato ogni 3 secondi
+            time.sleep(3)
 
 if __name__ == '__main__':
     main()
