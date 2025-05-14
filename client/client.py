@@ -1,13 +1,13 @@
 import csv
 import time
 import requests
-from datetime import datetime
+from datetime import datetime, timezone
 
 SERVER_URL = 'https://smart-home-server-174184628218.europe-west1.run.app/receive_data'  # Sostituisci con il tuo vero URL
 
 def send_data(row):
     unix_time = int(row['time'])  # converti stringa in intero
-    timestamp = datetime.utcfromtimestamp(unix_time).isoformat()  # es. '2016-01-01T00:00:00'
+    timestamp = datetime.fromtimestamp(unix_time, tz=timezone.utc).isoformat()
 
     payload = {
         'timestamp': timestamp,
