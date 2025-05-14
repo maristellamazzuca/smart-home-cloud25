@@ -2,12 +2,12 @@ import csv
 import time
 import requests
 
-SERVER_URL = 'https://smart-home-server-174184628218.europe-west1.run.app/receive_data'  # aggiorna con il tuo
+SERVER_URL = 'https://smart-home-server-xxxxx-ew.a.run.app/receive_data'  # Sostituisci con il tuo vero URL
 
 def send_data(row):
     payload = {
-        'timestamp': row['time'],             # usa 'time' invece di 'timestamp'
-        'value': row['use [kW]']              # o qualsiasi altra colonna ti interessa
+        'timestamp': row['time'],             # 'time' = timestamp in secondi UNIX
+        'value': row['use [kW]']              # usa la colonna 'use [kW]' come valore
     }
     print("Payload da inviare:", payload)
     try:
@@ -18,8 +18,11 @@ def send_data(row):
 
 def main():
     with open('client/HomeC.csv', newline='') as file:
-        reader = csv.DictReader(file)
+        reader = csv.DictReader(file, skipinitialspace=True)
+        reader.fieldnames = [name.strip() for name in reader.fieldnames]  # rimuove spazi in eccesso
+
         for row in reader:
+            row = {key.strip(): value for key, value in row.items()}  # normalizza ogni chiave
             send_data(row)
             time.sleep(3)
 
