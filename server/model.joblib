@@ -1,0 +1,14 @@
+from sklearn.linear_model import LinearRegression
+import joblib
+import numpy as np
+
+# Esempio di modello con 4 input
+X = np.array([[0.9, 1.0, 0.95, 1.1],
+              [0.8, 0.85, 0.9, 0.87],
+              [1.2, 1.15, 1.18, 1.22]])
+y = np.array([1.05, 0.89, 1.20])
+
+model = LinearRegression()
+model.fit(X, y)
+
+joblib.dump(model, "model.joblib")

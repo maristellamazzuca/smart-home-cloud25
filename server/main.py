@@ -1,6 +1,7 @@
 from flask import Flask, request, render_template
 import os
 from google.cloud import firestore
+from anomaly_predictor import predict_and_alert
 
 app = Flask(__name__)
 db = firestore.Client()
@@ -48,29 +49,44 @@ def view_data():
 def process_data(request, parte):
     try:
         data = request.get_json()
-        print(f"📥 [{parte}] Dati ricevuti:", data)
 
-        if not data:
-            return "Bad request: JSON vuoto o malformato", 400
+        if not data or "timestamp" not in data or "use [kW]" not in data:
+            return "Dati incompleti", 400
 
-        # timestamp resta per ordinamento/visualizzazione
         timestamp = data.get("timestamp")
-        if not timestamp:
-            return "Dati incompleti: manca timestamp", 400
-
-        # Salva tutti i dati della riga
         doc_ref = db.collection("sensors").document("sensor1")
+
+        # Salvataggio dati ricevuti
         if doc_ref.get().exists:
             doc_ref.update({"data": firestore.ArrayUnion([data])})
         else:
             doc_ref.set({"data": [data]})
 
-        print(f"✅ [{parte}] Riga completa salvata.")
-        return "Dati ricevuti e salvati", 200
+        # === Parte 4: rilevamento e notifica anomalia ===
+        current_value = float(data["use [kW]"])
+        _, triggered = predict_and_alert(current_value, timestamp)
+
+        return "Dati salvati" + (" con anomalia" if triggered else ""), 200
 
     except Exception as e:
-        print(f"🔥 [{parte}] Errore server:", e)
-        return f"Errore: {str(e)}", 400
+        return f"Errore: {str(e)}", 500
+
+@app.route("/view_anomalies", methods=["GET"])
+def view_anomalies():
+    try:
+        doc = db.collection("anomalies").document("log").get()
+
+        if not doc.exists:
+            return render_template("anomalies.html", anomalies=[])
+
+        raw = doc.to_dict().get("events", [])
+
+        anomalies = sorted(raw, key=lambda x: x.get("timestamp", ""))
+
+        return render_template("anomalies.html", anomalies=anomalies)
+
+    except Exception as e:
+        return f"Errore durante la lettura delle anomalie: {str(e)}", 500
 
 
 # --- Index generale per test ---
