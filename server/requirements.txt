@@ -1,7 +1,6 @@
 flask
 gunicorn
 google-cloud-firestore
-sendgrid
 joblib
 scikit-learn
 numpy

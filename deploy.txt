@@ -5,4 +5,6 @@ gcloud run deploy smart-home-multi \
   --platform managed \
   --region europe-west1 \
   --allow-unauthenticated
---set-env-vars SENDGRID_API_KEY=XXX,EMAIL_FROM=your@email.com,EMAIL_TO=destinatario@email.com
+--set-env-vars EMAIL_FROM=itsmarismazz@gmail.com,EMAIL_TO=lulujughead@gmail.com, EMAIL_PASSWORD=uhnz frnl khiv rjfw
+
+
