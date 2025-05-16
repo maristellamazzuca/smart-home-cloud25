@@ -1,0 +1,11 @@
+cd ~/smart-home-cloud25/server
+gcloud builds submit . --tag gcr.io/pcloud2025-11/smart-home-multi
+gcloud run deploy smart-home-multi \
+  --image gcr.io/pcloud2025-11/smart-home-multi \
+  --platform managed \
+  --region europe-west1 \
+  --allow-unauthenticated
+
+
+
+--set-env-vars SENDGRID_API_KEY=XXX,EMAIL_FROM=your@email.com,EMAIL_TO=destinatario@email.com
