@@ -109,9 +109,15 @@ def view_data():
 def view_anomalies():
     try:
         doc = db.collection("anomalies").document("log").get()
-        events = doc.to_dict().get("events", []) if doc.exists else []
-        return render_template("anomalies.html", anomalies=events)
+        events_data = doc.to_dict().get("events") if doc.exists else None
+        
+        if not isinstance(events_data, list):
+            print(f"[DEBUG] events_data non è una lista: {events_data}")
+            return render_template("anomalies.html", anomalies=[])
+        else:
+            return render_template("anomalies.html", anomalies=events_data)
     except Exception as e:
+        print(f"[ERROR] Errore in view_anomalies: {e}")
         return f"Errore: {str(e)}", 500
 
 # === Homepage
