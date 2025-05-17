@@ -65,21 +65,36 @@ def view_anomalies():
     try:
         doc = db.collection("anomalies").document("log").get()
         if not doc.exists():
+            print("Documento anomalies/log non esiste.")
             return render_template("anomalies.html", anomalies=[])
 
-        raw = doc.to_dict().get("events", [])
-        # Solo elementi che sono dizionari con le chiavi corrette
-        anomalies = [
-            a for a in raw
-            if isinstance(a, dict) and "timestamp" in a and "actual" in a and "predicted" in a
-        ]
+        data = doc.to_dict()
+        print("Contenuto del documento anomalies/log:", data)
 
-        anomalies = sorted(anomalies, key=lambda x: x.get("timestamp", ""))
+        raw = data.get("events", [])
+        if not isinstance(raw, list):
+            print("Campo 'events' non è una lista:", type(raw))
+            return render_template("anomalies.html", anomalies=[])
+
+        anomalies = []
+        for item in raw:
+            if isinstance(item, dict):
+                anomalies.append({
+                    "timestamp": item.get("timestamp", "N/D"),
+                    "actual": item.get("actual", "N/D"),
+                    "predicted": item.get("predicted", "N/D"),
+                    "delta": item.get("delta", "N/D"),
+                    "sent": item.get("sent", False)
+                })
+            else:
+                print("Elemento malformato ignorato:", item)
+
+        anomalies = sorted(anomalies, key=lambda x: x["timestamp"])
         return render_template("anomalies.html", anomalies=anomalies)
 
     except Exception as e:
         print("Errore in view_anomalies:", e)
-        return f"Errore: {str(e)}", 500
+        return f"Errore interno: {str(e)}", 500
 
 # Pagina principale
 @app.route("/", methods=["GET"])
