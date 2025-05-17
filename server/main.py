@@ -64,15 +64,22 @@ def view_data():
 def view_anomalies():
     try:
         doc = db.collection("anomalies").document("log").get()
-        if not doc.exists:
+        if not doc.exists():
             return render_template("anomalies.html", anomalies=[])
 
-        anomalies = doc.to_dict().get("events", [])
+        raw = doc.to_dict().get("events", [])
+        # Solo elementi che sono dizionari con le chiavi corrette
+        anomalies = [
+            a for a in raw
+            if isinstance(a, dict) and "timestamp" in a and "actual" in a and "predicted" in a
+        ]
+
         anomalies = sorted(anomalies, key=lambda x: x.get("timestamp", ""))
         return render_template("anomalies.html", anomalies=anomalies)
 
     except Exception as e:
-        return f"Errore durante la lettura delle anomalie: {str(e)}", 500
+        print("Errore in view_anomalies:", e)
+        return f"Errore: {str(e)}", 500
 
 # Pagina principale
 @app.route("/", methods=["GET"])
