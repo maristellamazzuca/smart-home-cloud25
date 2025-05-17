@@ -17,7 +17,6 @@ db = firestore.Client()
 def send_email_alert(timestamp, actual, predicted):
     subject = "Smart Home - Anomalia rilevata"
     body = f"Timestamp: {timestamp}\nValore misurato: {actual}\nValore previsto: {predicted:.2f}\nDelta: {abs(actual - predicted):.2f}"
-
     msg = MIMEText(body)
     msg["Subject"] = subject
     msg["From"] = EMAIL_FROM
@@ -36,17 +35,17 @@ def predict_and_alert(current_value, timestamp):
             return "Nessun dato storico", False
 
         data = doc.to_dict().get("data", [])
-        history = [float(x["use [kW]"]) for x in data if "use [kW]" in x]
-        if len(history) < 4:
-            return "Storico insufficiente", False
+        values = [float(x["use [kW]"]) for x in data if "use [kW]" in x]
 
-        x_input = [history[-1], history[-2], history[-3], history[-4]]
-        predicted = model.predict([x_input])[0]
+        if len(values) < 4:
+            return "Dati insufficienti", False
+
+        x_input = np.array(values[-4:]).reshape(1, -1)
+        predicted = model.predict(x_input)[0]
         delta = abs(current_value - predicted)
 
         if delta > DELTA_THRESHOLD:
             send_email_alert(timestamp, current_value, predicted)
-            log_ref = db.collection("anomalies").document("log")
             entry = {
                 "timestamp": timestamp,
                 "actual": current_value,
@@ -54,6 +53,7 @@ def predict_and_alert(current_value, timestamp):
                 "delta": round(delta, 2),
                 "sent": True
             }
+            log_ref = db.collection("anomalies").document("log")
             if log_ref.get().exists():
                 log_ref.update({"events": firestore.ArrayUnion([entry])})
             else:
@@ -63,5 +63,5 @@ def predict_and_alert(current_value, timestamp):
         return "Tutto regolare", False
 
     except Exception as e:
-        print("[ERROR] in predict_and_alert:", e)
-        return f"Errore: {str(e)}", False
+        print("[ERROR] predict_and_alert:", e)
+        return f"Errore: {e}", False
