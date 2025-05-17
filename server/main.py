@@ -68,14 +68,15 @@ def view_anomalies():
             return render_template("anomalies.html", anomalies=[])
 
         raw = doc.to_dict().get("events", [])
-        if not isinstance(raw, list):
-            return render_template("anomalies.html", anomalies=[])
 
-        anomalies = [entry for entry in raw if isinstance(entry, dict)]
+        # Filtro di sicurezza
+        anomalies = [a for a in raw if isinstance(a, dict) and "timestamp" in a]
         anomalies = sorted(anomalies, key=lambda x: x["timestamp"])
+
         return render_template("anomalies.html", anomalies=anomalies)
 
     except Exception as e:
+        print("[ERROR] in view_anomalies:", e)
         return f"Errore durante la visualizzazione delle anomalie: {str(e)}", 500
 
 @app.route("/", methods=["GET"])
