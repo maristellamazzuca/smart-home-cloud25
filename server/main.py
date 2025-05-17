@@ -1,7 +1,7 @@
 from flask import Flask, request, render_template
 import os
 from google.cloud import firestore
-from server.anomaly_predictor import predict_and_alert
+from anomaly_predictor import predict_and_alert
 
 app = Flask(__name__)
 db = firestore.Client()
