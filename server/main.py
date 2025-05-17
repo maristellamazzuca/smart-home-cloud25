@@ -109,16 +109,28 @@ def view_data():
 def view_anomalies():
     try:
         doc = db.collection("anomalies").document("log").get()
-        events_data = doc.to_dict().get("events") if doc.exists else None
-        
-        if not isinstance(events_data, list):
-            print(f"[DEBUG] events_data non è una lista: {events_data}")
+
+        # Se il documento non esiste o non ha eventi, restituisci lista vuota
+        if not doc.exists():
             return render_template("anomalies.html", anomalies=[])
-        else:
-            return render_template("anomalies.html", anomalies=events_data)
+
+        data = doc.to_dict()
+        raw_events = data.get("events", [])
+
+        # Protezione: se non è una lista, evitiamo l'errore HTML
+        if not isinstance(raw_events, list):
+            print("[WARNING] Il campo 'events' non è una lista:", type(raw_events))
+            return render_template("anomalies.html", anomalies=[])
+
+        # Filtra eventuali oggetti non validi
+        anomalies = [e for e in raw_events if isinstance(e, dict) and "timestamp" in e]
+        anomalies = sorted(anomalies, key=lambda x: x.get("timestamp", ""))
+        return render_template("anomalies.html", anomalies=anomalies)
+
     except Exception as e:
-        print(f"[ERROR] Errore in view_anomalies: {e}")
-        return f"Errore: {str(e)}", 500
+        print("[ERROR] view_anomalies:", e)
+        return f"Errore durante la visualizzazione delle anomalie: {str(e)}", 500
+
 
 # === Homepage
 @app.route("/")
