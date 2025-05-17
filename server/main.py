@@ -1,6 +1,6 @@
 from flask import Flask, request, render_template
 from google.cloud import firestore
-from anomaly_predictor import predict_and_alert
+import anomaly_predictor
 import os
 
 app = Flask(__name__)
@@ -34,7 +34,8 @@ def process_data(request, parte):
 
         # === Parte 4: rilevamento anomalia e invio email se necessario
         current_value = float(data["use [kW]"])
-        _, triggered = predict_and_alert(current_value, timestamp)
+        _, triggered = anomaly_predictor.predict_and_alert(current_value, timestamp)
+
 
         return "Dati salvati" + (" con anomalia" if triggered else ""), 200
 

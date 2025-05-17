@@ -5,7 +5,6 @@ gcloud run deploy smart-home-multi \
   --allow-unauthenticated \
   --set-env-vars 'EMAIL_FROM="itsmarismazz@gmail.com",EMAIL_TO="lulujughead@gmail.com",EMAIL_PASSWORD="uhnz frnl khiv rjfw"'
 
-
 rm -rf smart-home-cloud25
 git clone https://github.com/maristellamazzuca/smart-home-cloud25.git
 cd smart-home-cloud25
