@@ -3,23 +3,26 @@ from google.cloud import firestore
 import anomaly_predictor
 import os
 
+# Inizializzazione Flask e Firestore
 app = Flask(__name__)
-db = firestore.Client()
 app.template_folder = os.path.join(os.path.dirname(__file__), 'templates')
+db = firestore.Client()
 
-# === Parte 1 e 2: ricezione dati da client (Cloud Run / Cloud Function simulata)
+# === Parte 1: ricezione dati dal client (simula invio da sensore IoT)
 @app.route("/receive_data", methods=["POST"])
 def receive_data():
     return process_data(request, "Parte 1")
 
+# === Parte 2: ricezione da Cloud Function (stesso meccanismo, ma separato)
 @app.route("/receive_data_cf", methods=["POST"])
 def receive_data_cf():
     return process_data(request, "Parte 2")
 
+# === Funzione centrale: salva i dati, richiama la Parte 4 per la predizione
 def process_data(request, parte):
     try:
         data = request.get_json()
-        print(f"[DEBUG] Richiesta ricevuta: {data}")
+        print(f"[DEBUG] Richiesta ricevuta in {parte}: {data}")
 
         if not data or "timestamp" not in data or "use [kW]" not in data:
             print("[ERROR] Dati incompleti")
@@ -27,23 +30,25 @@ def process_data(request, parte):
 
         timestamp = data.get("timestamp")
         doc_ref = db.collection("sensors").document("sensor1")
-        print("[DEBUG] Inizio salvataggio dati")
 
-        if doc_ref.get().exists:
+        if doc_ref.get().exists():
             doc_ref.update({"data": firestore.ArrayUnion([data])})
         else:
             doc_ref.set({"data": [data]})
 
-        current_value = float(data["use [kW]"])
-        print(f"[DEBUG] Valore ricevuto: {current_value}, timestamp: {timestamp}")
-
-        result, triggered = anomaly_predictor.predict_and_alert(current_value, timestamp)
-        print(f"[DEBUG] Risultato: {result}, Anomalia: {triggered}")
+        # === Parte 4: predizione e rilevamento anomalia
+        try:
+            current_value = float(data["use [kW]"])
+            result, triggered = anomaly_predictor.predict_and_alert(current_value, timestamp)
+            print(f"[DEBUG] Risultato predizione: {result}, triggered: {triggered}")
+        except Exception as e:
+            print("[ERROR] durante predict_and_alert:", e)
+            return f"Errore interno (predict): {str(e)}", 500
 
         return "Dati salvati" + (" con anomalia" if triggered else ""), 200
 
     except Exception as e:
-        print("[ERROR] Eccezione in process_data:", e)
+        print("[ERROR] Generale in process_data:", e)
         return f"Errore interno: {str(e)}", 500
 
 # === Parte 3: visualizzazione dei dati raccolti
@@ -51,7 +56,7 @@ def process_data(request, parte):
 def view_data():
     try:
         doc = db.collection("sensors").document("sensor1").get()
-        if not doc.exists:
+        if not doc.exists():
             return render_template("view_data.html", data=[], headers=[])
 
         data_list = doc.to_dict().get("data", [])
@@ -61,23 +66,21 @@ def view_data():
         return render_template("view_data.html", data=data_list, headers=headers)
 
     except Exception as e:
+        print("[ERROR] in view_data:", e)
         return f"Errore durante la lettura dei dati: {str(e)}", 500
 
-# === Parte 4 (visuale): visualizzazione anomalie rilevate
+# === Parte 4b: visualizzazione delle anomalie rilevate
 @app.route("/view_anomalies", methods=["GET"])
 def view_anomalies():
     try:
         doc = db.collection("anomalies").document("log").get()
         if not doc.exists():
-            print("Documento anomalies/log non esiste.")
             return render_template("anomalies.html", anomalies=[])
 
         data = doc.to_dict()
-        print("Contenuto del documento anomalies/log:", data)
-
         raw = data.get("events", [])
         if not isinstance(raw, list):
-            print("Campo 'events' non è una lista:", type(raw))
+            print("[ERROR] events non è una lista:", type(raw))
             return render_template("anomalies.html", anomalies=[])
 
         anomalies = []
@@ -90,17 +93,19 @@ def view_anomalies():
                     "delta": item.get("delta", "N/D"),
                     "sent": item.get("sent", False)
                 })
-            else:
-                print("Elemento malformato ignorato:", item)
 
         anomalies = sorted(anomalies, key=lambda x: x["timestamp"])
         return render_template("anomalies.html", anomalies=anomalies)
 
     except Exception as e:
-        print("Errore in view_anomalies:", e)
-        return f"Errore interno: {str(e)}", 500
+        print("[ERROR] in view_anomalies:", e)
+        return f"Errore durante la visualizzazione delle anomalie: {str(e)}", 500
 
-# Pagina principale
+# === Homepage con accesso alle varie funzionalità
 @app.route("/", methods=["GET"])
 def index():
     return render_template("index.html")
+
+# === Per esecuzione locale (facoltativo)
+if __name__ == "__main__":
+    app.run(debug=True)
