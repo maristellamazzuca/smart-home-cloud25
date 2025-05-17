@@ -3,7 +3,7 @@ import time
 import requests
 from datetime import datetime, timezone
 
-SERVER_URL = 'https://smart-home-multi-174184628218.europe-west1.run.app/receive_data'  # aggiorna con il tuo
+SERVER_URL = 'https://smart-home-multi-174184628218.europe-west1.run.app/receive_data'
 
 FIELDNAMES = [
     'time', 'use [kW]', 'gen [kW]', 'House overall [kW]', 'Dishwasher [kW]',
@@ -16,11 +16,9 @@ FIELDNAMES = [
 ]
 
 def send_data(row):
-    from datetime import datetime, timezone
     unix_time = int(row['time'])
     iso_timestamp = datetime.fromtimestamp(unix_time, tz=timezone.utc).isoformat()
 
-    # Ricostruisci riga completa
     payload = {key: row.get(key, '') for key in FIELDNAMES}
     payload['timestamp_unix'] = row.get('time', '')
     payload['timestamp'] = iso_timestamp

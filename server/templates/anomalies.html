@@ -3,38 +3,15 @@
 <head>
     <title>Anomalie Smart Home</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #eef3f7;
-            color: #333;
-            text-align: center;
-            padding: 40px;
-        }
-        h2 { color: #2c3e50; }
-        table {
-            border-collapse: collapse;
-            margin: auto;
-            width: 90%;
-            background-color: white;
-            font-size: 14px;
-        }
-        th, td {
-            border: 1px solid #ccc;
-            padding: 8px;
-            text-align: center;
-        }
-        th {
-            background-color: #e74c3c;
-            color: white;
-        }
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
+        body { font-family: Arial; background-color: #eef3f7; text-align: center; padding: 40px; }
+        table { border-collapse: collapse; margin: auto; width: 90%; background-color: white; font-size: 14px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        th { background-color: #e74c3c; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
     </style>
 </head>
 <body>
     <h2>Anomalie rilevate nella Smart Home</h2>
-
     {% if anomalies %}
     <table>
         <tr>
@@ -55,7 +32,7 @@
         {% endfor %}
     </table>
     {% else %}
-        <p>Nessuna anomalia rilevata.</p>
+    <p>Nessuna anomalia rilevata.</p>
     {% endif %}
 </body>
 </html>

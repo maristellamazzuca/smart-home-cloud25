@@ -3,55 +3,24 @@
 <head>
     <title>Dati Smart Home</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #eef3f7;
-            color: #333;
-            text-align: center;
-        }
-        h2 { color: #2c3e50; }
-        table {
-            border-collapse: collapse;
-            margin: auto;
-            width: 95%;
-            background-color: white;
-            font-size: 14px;
-        }
-        th, td {
-            border: 1px solid #ccc;
-            padding: 6px;
-            text-align: center;
-        }
-        th {
-            background-color: #3498db;
-            color: white;
-        }
-        tr:nth-child(even) {
-            background-color: #f2f2f2;
-        }
+        body { font-family: Arial; background-color: #eef3f7; text-align: center; }
+        table { border-collapse: collapse; margin: auto; width: 95%; background-color: white; font-size: 14px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        th { background-color: #3498db; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
     </style>
 </head>
 <body>
     <h2>Dati raccolti dalla smart home</h2>
-
     {% if data %}
     <table>
-    <tr>
-        {% for key in headers %}
-        <th>{{ key }}</th>
+        <tr>{% for key in headers %}<th>{{ key }}</th>{% endfor %}</tr>
+        {% for row in data %}
+        <tr>{% for key in headers %}<td>{{ row.get(key, '') }}</td>{% endfor %}</tr>
         {% endfor %}
-    </tr>
-    {% for row in data %}
-    <tr>
-        {% for key in headers %}
-        <td>{{ row.get(key, '') }}</td>
-        {% endfor %}
-    </tr>
-    {% endfor %}
     </table>
-
     {% else %}
-        <p><strong>Nessun dato disponibile.</strong></p>
+    <p>Nessun dato disponibile.</p>
     {% endif %}
 </body>
 </html>

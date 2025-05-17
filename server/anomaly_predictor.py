@@ -5,16 +5,19 @@ import smtplib
 from email.mime.text import MIMEText
 from google.cloud import firestore
 
+# === Parametri
 DELTA_THRESHOLD = 1.0
 MODEL_PATH = "model.joblib"
 
+# === Variabili ambiente per email
 EMAIL_FROM = os.environ.get("EMAIL_FROM")
 EMAIL_TO = os.environ.get("EMAIL_TO")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 
+# === Inizializzazione
 db = firestore.Client()
-model = joblib.load(MODEL_PATH)
 
+# === Funzione invio email via Gmail SMTP
 def send_email_alert(timestamp, actual, predicted):
     subject = "Smart Home - Anomalia rilevata"
     body = (
@@ -34,9 +37,12 @@ def send_email_alert(timestamp, actual, predicted):
         smtp.login(EMAIL_FROM, EMAIL_PASSWORD)
         smtp.send_message(msg)
 
+# === Funzione per predizione e rilevamento anomalia
 def predict_and_alert(current_value, timestamp):
+    model = joblib.load(MODEL_PATH)
+
     doc = db.collection("sensors").document("sensor1").get()
-    if not doc.exists:
+    if not doc.exists():
         return "Nessun documento", False
 
     data = doc.to_dict().get("data", [])
@@ -50,7 +56,7 @@ def predict_and_alert(current_value, timestamp):
     if abs(current_value - predicted) > DELTA_THRESHOLD:
         send_email_alert(timestamp, current_value, predicted)
 
-        # Salva anche in /view_anomalies
+        # Log dell'anomalia per visualizzazione
         log_ref = db.collection("anomalies").document("log")
         anomaly = {
             "timestamp": timestamp,
