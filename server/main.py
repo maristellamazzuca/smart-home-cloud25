@@ -59,7 +59,7 @@ def receive_data():
             doc_ref.set({"data": [data]})
 
         # === Parte 4: predizione e rilevamento anomalia
-        result, triggered = predict_and_notify(use_kw, timestamp)
+        result, triggered = predict_and_log(use_kw, timestamp)
         return "Dati salvati" + (" con anomalia" if triggered else ""), 200
 
     except Exception as e:
@@ -67,15 +67,19 @@ def receive_data():
         return f"Errore: {str(e)}", 500
 
 # === Parte 4a: predizione + 4b: notifica se anomalia
-def predict_and_notify(current_value, timestamp):
+def predict_and_log(current_value, timestamp):
     try:
         model = joblib.load(MODEL_PATH)
 
         doc = db.collection("sensors").document("sensor1").get()
-        history = [float(x["use [kW]"]) for x in doc.to_dict().get("data", []) if "use [kW]" in x]
+        history = [
+            float(x["use [kW]"])
+            for x in doc.to_dict().get("data", [])
+            if "use [kW]" in x
+        ]
 
         if len(history) < 4:
-            return "Storico insufficiente", False
+            return "Dati insufficienti", False
 
         x_input = np.array(history[-4:]).reshape(1, -1)
         predicted = model.predict(x_input)[0]
@@ -84,27 +88,33 @@ def predict_and_notify(current_value, timestamp):
         if delta > DELTA_THRESHOLD:
             send_email_alert(timestamp, current_value, predicted)
 
-            # Salva log in Firestore
-            entry = {
+            log_ref = db.collection("anomalies").document("log")
+            new_entry = {
                 "timestamp": timestamp,
                 "actual": current_value,
                 "predicted": round(predicted, 2),
                 "delta": round(delta, 2),
                 "sent": True
             }
-            log_ref = db.collection("anomalies").document("log")
-            if log_ref.get().exists():
-                log_ref.update({"events": firestore.ArrayUnion([entry])})
+
+            # Validazione e scrittura sicura
+            old_doc = log_ref.get()
+            if old_doc.exists():
+                data = old_doc.to_dict()
+                if not isinstance(data.get("events", []), list):
+                    data["events"] = []
+                log_ref.update({"events": firestore.ArrayUnion([new_entry])})
             else:
-                log_ref.set({"events": [entry]})
+                log_ref.set({"events": [new_entry]})
 
             return "Anomalia rilevata", True
 
         return "Tutto regolare", False
 
     except Exception as e:
-        print("[ERROR] in predict_and_notify:", e)
+        print("[ERROR] in predict_and_log:", e)
         return f"Errore: {str(e)}", False
+
 
 # === Parte 3: visualizzazione dati raccolti
 @app.route("/view_data")
@@ -128,22 +138,19 @@ def view_anomalies():
             return render_template("anomalies.html", anomalies=[])
 
         raw = doc.to_dict().get("events", [])
+
         if not isinstance(raw, list):
-            print("[WARNING] events non è una lista:", type(raw))
+            print("[WARNING] Il campo 'events' non è una lista:", type(raw))
             return render_template("anomalies.html", anomalies=[])
 
-        anomalies = []
-        for item in raw:
-            if isinstance(item, dict):
-                anomalies.append(item)
-            else:
-                print("[WARNING] Trovato elemento non-dizionario in events:", type(item), item)
-
+        anomalies = [item for item in raw if isinstance(item, dict)]
         anomalies = sorted(anomalies, key=lambda x: x.get("timestamp", ""))
         return render_template("anomalies.html", anomalies=anomalies)
+
     except Exception as e:
         print("[ERROR] in view_anomalies:", e)
         return f"Errore: {str(e)}", 500
+    
 # === Homepage
 @app.route("/")
 def index():
