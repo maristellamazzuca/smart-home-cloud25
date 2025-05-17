@@ -1,29 +1,35 @@
 from flask import Flask, request, render_template
 from google.cloud import firestore
-import os
-import smtplib
-from email.mime.text import MIMEText
 import numpy as np
 import joblib
+import smtplib
+from email.mime.text import MIMEText
+import os
 
-# === Configurazione Flask e Firestore
+# === Inizializzazione Flask e Firestore
 app = Flask(__name__)
 app.template_folder = "templates"
 db = firestore.Client()
 
-# === Parametri modello e soglia anomalia (Parte 4a)
-MODEL_PATH = "model.joblib"
+# === Parametri globali per la predizione (Parte 4a)
 DELTA_THRESHOLD = 0.2
+MODEL_PATH = "model.joblib"
 
 # === Variabili ambiente per invio email (Parte 4b)
 EMAIL_FROM = os.environ.get("EMAIL_FROM")
 EMAIL_TO = os.environ.get("EMAIL_TO")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 
-# === Invio email in caso di anomalia
+# === Funzione per inviare una email in caso di anomalia (Parte 4b)
 def send_email_alert(timestamp, actual, predicted):
     subject = "Smart Home - Anomalia rilevata"
-    body = f"Timestamp: {timestamp}\\nValore misurato: {actual}\\nValore previsto: {predicted:.2f}\\nDelta: {abs(actual - predicted):.2f}"
+    body = (
+        f"Timestamp: {timestamp}\n"
+        f"Valore misurato: {actual}\n"
+        f"Valore previsto: {predicted:.2f}\n"
+        f"Delta: {abs(actual - predicted):.2f}"
+    )
+
     msg = MIMEText(body)
     msg["Subject"] = subject
     msg["From"] = EMAIL_FROM
@@ -34,7 +40,7 @@ def send_email_alert(timestamp, actual, predicted):
         smtp.login(EMAIL_FROM, EMAIL_PASSWORD)
         smtp.send_message(msg)
 
-# === Parte 1-2: ricezione dati dal client
+# === Parte 1-2: ricezione dati via POST (come da sensore IoT)
 @app.route("/receive_data", methods=["POST"])
 def receive_data():
     try:
@@ -43,25 +49,28 @@ def receive_data():
             return "Dati incompleti", 400
 
         timestamp = data["timestamp"]
-        doc_ref = db.collection("sensors").document("sensor1")
+        use_kw = float(data["use [kW]"])
 
+        # Salvataggio su Firestore
+        doc_ref = db.collection("sensors").document("sensor1")
         if doc_ref.get().exists():
             doc_ref.update({"data": firestore.ArrayUnion([data])})
         else:
             doc_ref.set({"data": [data]})
 
-        # === Parte 4a: predizione
-        result, triggered = predict_and_notify(data["use [kW]"], timestamp)
+        # === Parte 4: predizione e rilevamento anomalia
+        result, triggered = predict_and_notify(use_kw, timestamp)
         return "Dati salvati" + (" con anomalia" if triggered else ""), 200
 
     except Exception as e:
-        print("Errore in receive_data:", e)
-        return f"Errore interno: {str(e)}", 500
+        print("[ERROR] in receive_data:", e)
+        return f"Errore: {str(e)}", 500
 
-# === Parte 4a/4b: predizione + notifica se necessario
+# === Parte 4a: predizione + 4b: notifica se anomalia
 def predict_and_notify(current_value, timestamp):
     try:
         model = joblib.load(MODEL_PATH)
+
         doc = db.collection("sensors").document("sensor1").get()
         history = [float(x["use [kW]"]) for x in doc.to_dict().get("data", []) if "use [kW]" in x]
 
@@ -70,67 +79,65 @@ def predict_and_notify(current_value, timestamp):
 
         x_input = np.array(history[-4:]).reshape(1, -1)
         predicted = model.predict(x_input)[0]
-        delta = abs(float(current_value) - predicted)
+        delta = abs(current_value - predicted)
 
         if delta > DELTA_THRESHOLD:
-            send_email_alert(timestamp, float(current_value), predicted)
-            log_ref = db.collection("anomalies").document("log")
+            send_email_alert(timestamp, current_value, predicted)
+
+            # Salva log in Firestore
             entry = {
                 "timestamp": timestamp,
-                "actual": float(current_value),
+                "actual": current_value,
                 "predicted": round(predicted, 2),
                 "delta": round(delta, 2),
                 "sent": True
             }
+            log_ref = db.collection("anomalies").document("log")
             if log_ref.get().exists():
                 log_ref.update({"events": firestore.ArrayUnion([entry])})
             else:
                 log_ref.set({"events": [entry]})
+
             return "Anomalia rilevata", True
 
-        return "Normale", False
+        return "Tutto regolare", False
+
     except Exception as e:
-        print("Errore in predict_and_notify:", e)
+        print("[ERROR] in predict_and_notify:", e)
         return f"Errore: {str(e)}", False
 
-# === Parte 3: visualizzazione dei dati
+# === Parte 3: visualizzazione dati raccolti
 @app.route("/view_data")
 def view_data():
     try:
         doc = db.collection("sensors").document("sensor1").get()
-        data = doc.to_dict().get("data", []) if doc.exists else []
-        headers = sorted(set().union(*(d.keys() for d in data)))
+        if not doc.exists():
+            return render_template("view_data.html", data=[], headers=[])
+        data = doc.to_dict().get("data", [])
+        headers = sorted(set().union(*(d.keys() for d in data if isinstance(d, dict))))
         return render_template("view_data.html", data=data, headers=headers)
     except Exception as e:
         return f"Errore: {str(e)}", 500
 
-# === Parte 4b: visualizzazione anomalie
+# === Parte 4b: visualizzazione anomalie salvate
 @app.route("/view_anomalies")
 def view_anomalies():
     try:
         doc = db.collection("anomalies").document("log").get()
-
-        # Se il documento non esiste o non ha eventi, restituisci lista vuota
         if not doc.exists():
             return render_template("anomalies.html", anomalies=[])
 
-        data = doc.to_dict()
-        raw_events = data.get("events", [])
-
-        # Protezione: se non è una lista, evitiamo l'errore HTML
-        if not isinstance(raw_events, list):
-            print("[WARNING] Il campo 'events' non è una lista:", type(raw_events))
+        raw = doc.to_dict().get("events", [])
+        if not isinstance(raw, list):
+            print("[WARNING] events non è una lista:", type(raw))
             return render_template("anomalies.html", anomalies=[])
 
-        # Filtra eventuali oggetti non validi
-        anomalies = [e for e in raw_events if isinstance(e, dict) and "timestamp" in e]
+        anomalies = [a for a in raw if isinstance(a, dict)]
         anomalies = sorted(anomalies, key=lambda x: x.get("timestamp", ""))
         return render_template("anomalies.html", anomalies=anomalies)
-
     except Exception as e:
-        print("[ERROR] view_anomalies:", e)
-        return f"Errore durante la visualizzazione delle anomalie: {str(e)}", 500
-
+        print("[ERROR] in view_anomalies:", e)
+        return f"Errore: {str(e)}", 500
 
 # === Homepage
 @app.route("/")
