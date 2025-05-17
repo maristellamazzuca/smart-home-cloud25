@@ -19,34 +19,32 @@ def receive_data_cf():
 def process_data(request, parte):
     try:
         data = request.get_json()
+        print(f"[DEBUG] Richiesta ricevuta: {data}")
 
         if not data or "timestamp" not in data or "use [kW]" not in data:
+            print("[ERROR] Dati incompleti")
             return "Dati incompleti", 400
 
         timestamp = data.get("timestamp")
         doc_ref = db.collection("sensors").document("sensor1")
+        print("[DEBUG] Inizio salvataggio dati")
 
-        # Salvataggio dei dati in Firestore
         if doc_ref.get().exists:
             doc_ref.update({"data": firestore.ArrayUnion([data])})
         else:
             doc_ref.set({"data": [data]})
 
-        # === Parte 4: rilevamento anomalia e invio email se necessario
-        try:
-            current_value = float(data["use [kW]"])
-            print(f"[DEBUG] use [kW]: {current_value}, timestamp: {timestamp}")
-            result, triggered = anomaly_predictor.predict_and_alert(current_value, timestamp)
-            print(f"[DEBUG] Risultato predizione: {result}, triggered: {triggered}")
-        except Exception as e:
-            print(f"[ERROR] Errore durante predict_and_alert: {e}")
-            return f"Errore durante il rilevamento anomalia: {str(e)}", 500
+        current_value = float(data["use [kW]"])
+        print(f"[DEBUG] Valore ricevuto: {current_value}, timestamp: {timestamp}")
 
+        result, triggered = anomaly_predictor.predict_and_alert(current_value, timestamp)
+        print(f"[DEBUG] Risultato: {result}, Anomalia: {triggered}")
 
         return "Dati salvati" + (" con anomalia" if triggered else ""), 200
 
     except Exception as e:
-        return f"Errore: {str(e)}", 500
+        print("[ERROR] Eccezione in process_data:", e)
+        return f"Errore interno: {str(e)}", 500
 
 # === Parte 3: visualizzazione dei dati raccolti
 @app.route("/view_data", methods=["GET"])
