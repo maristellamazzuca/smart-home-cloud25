@@ -33,8 +33,14 @@ def process_data(request, parte):
             doc_ref.set({"data": [data]})
 
         # === Parte 4: rilevamento anomalia e invio email se necessario
-        current_value = float(data["use [kW]"])
-        _, triggered = anomaly_predictor.predict_and_alert(current_value, timestamp)
+        try:
+            current_value = float(data["use [kW]"])
+            print(f"[DEBUG] use [kW]: {current_value}, timestamp: {timestamp}")
+            result, triggered = anomaly_predictor.predict_and_alert(current_value, timestamp)
+            print(f"[DEBUG] Risultato predizione: {result}, triggered: {triggered}")
+        except Exception as e:
+            print(f"[ERROR] Errore durante predict_and_alert: {e}")
+            return f"Errore durante il rilevamento anomalia: {str(e)}", 500
 
 
         return "Dati salvati" + (" con anomalia" if triggered else ""), 200
