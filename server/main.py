@@ -132,13 +132,18 @@ def view_anomalies():
             print("[WARNING] events non è una lista:", type(raw))
             return render_template("anomalies.html", anomalies=[])
 
-        anomalies = [a for a in raw if isinstance(a, dict)]
+        anomalies = []
+        for item in raw:
+            if isinstance(item, dict):
+                anomalies.append(item)
+            else:
+                print("[WARNING] Trovato elemento non-dizionario in events:", type(item), item)
+
         anomalies = sorted(anomalies, key=lambda x: x.get("timestamp", ""))
         return render_template("anomalies.html", anomalies=anomalies)
     except Exception as e:
         print("[ERROR] in view_anomalies:", e)
         return f"Errore: {str(e)}", 500
-
 # === Homepage
 @app.route("/")
 def index():
