@@ -8,6 +8,8 @@ app = Flask(__name__)
 app.template_folder = os.path.join(os.path.dirname(__file__), 'templates')
 db = firestore.Client()
 
+print("Tipo di predict_and_alert:", type(anomaly_predictor.predict_and_alert))
+
 # === Parte 1: ricezione dati dal client (simula invio da sensore IoT)
 @app.route("/receive_data", methods=["POST"])
 def receive_data():

@@ -38,14 +38,8 @@ def send_email_alert(timestamp, actual, predicted):
         smtp.send_message(msg)
 
 def predict_and_alert(current_value, timestamp):
-    """
-    Funzione principale per:
-    a) Predire il valore atteso con model.predict
-    b) Confrontarlo con il valore reale
-    c) Inviare email e salvare il log se anomalo
-    """
     try:
-        model = joblib.load(MODEL_PATH)
+        model = joblib.load("model.joblib")
 
         doc = db.collection("sensors").document("sensor1").get()
         if not doc.exists():
@@ -54,18 +48,18 @@ def predict_and_alert(current_value, timestamp):
         data = doc.to_dict().get("data", [])
         history = [float(x["use [kW]"]) for x in data if "use [kW]" in x]
         if len(history) < 4:
-            return "Dati insufficienti per la predizione", False
+            return "Storico insufficiente", False
 
-        # Costruzione input e predizione
+        # Predizione
         x_input = np.array(history[-4:]).reshape(1, -1)
         predicted = model.predict(x_input)[0]
 
         delta = abs(current_value - predicted)
 
-        if delta > DELTA_THRESHOLD:
+        if delta > 0.2:
             send_email_alert(timestamp, current_value, predicted)
 
-            # Salvataggio su Firestore in /anomalies/log
+            # Log anomalia
             log_ref = db.collection("anomalies").document("log")
             entry = {
                 "timestamp": timestamp,
@@ -74,6 +68,7 @@ def predict_and_alert(current_value, timestamp):
                 "delta": round(delta, 2),
                 "sent": True
             }
+
             if log_ref.get().exists():
                 log_ref.update({"events": firestore.ArrayUnion([entry])})
             else:
@@ -84,5 +79,5 @@ def predict_and_alert(current_value, timestamp):
         return "Nessuna anomalia", False
 
     except Exception as e:
-        print("[ERROR] in predict_and_alert:", e)
+        print("Errore in predict_and_alert:", e)
         return f"Errore: {str(e)}", False
