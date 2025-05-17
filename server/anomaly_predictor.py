@@ -5,20 +5,19 @@ import smtplib
 from email.mime.text import MIMEText
 from google.cloud import firestore
 
-# Soglia oltre la quale consideriamo il valore anomalo
+# Parametri
 DELTA_THRESHOLD = 0.2
 MODEL_PATH = "model.joblib"
 
-# Variabili ambiente per email
+# Variabili ambiente
 EMAIL_FROM = os.environ.get("EMAIL_FROM")
 EMAIL_TO = os.environ.get("EMAIL_TO")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 
-# Inizializzazione Firestore
+# Firestore
 db = firestore.Client()
 
 def send_email_alert(timestamp, actual, predicted):
-    """Invia un'email tramite SMTP se viene rilevata un'anomalia"""
     subject = "Smart Home - Anomalia rilevata"
     body = (
         f"Timestamp: {timestamp}\n"
@@ -39,7 +38,7 @@ def send_email_alert(timestamp, actual, predicted):
 
 def predict_and_alert(current_value, timestamp):
     try:
-        model = joblib.load("model.joblib")
+        model = joblib.load(MODEL_PATH)
 
         doc = db.collection("sensors").document("sensor1").get()
         if not doc.exists():
@@ -48,18 +47,16 @@ def predict_and_alert(current_value, timestamp):
         data = doc.to_dict().get("data", [])
         history = [float(x["use [kW]"]) for x in data if "use [kW]" in x]
         if len(history) < 4:
-            return "Storico insufficiente", False
+            return "Dati insufficienti per predizione", False
 
-        # Predizione
         x_input = np.array(history[-4:]).reshape(1, -1)
         predicted = model.predict(x_input)[0]
 
         delta = abs(current_value - predicted)
 
-        if delta > 0.2:
+        if delta > DELTA_THRESHOLD:
             send_email_alert(timestamp, current_value, predicted)
 
-            # Log anomalia
             log_ref = db.collection("anomalies").document("log")
             entry = {
                 "timestamp": timestamp,
@@ -79,5 +76,5 @@ def predict_and_alert(current_value, timestamp):
         return "Nessuna anomalia", False
 
     except Exception as e:
-        print("Errore in predict_and_alert:", e)
+        print("[ERROR] in predict_and_alert:", e)
         return f"Errore: {str(e)}", False
