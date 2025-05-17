@@ -5,26 +5,18 @@ import smtplib
 from email.mime.text import MIMEText
 from google.cloud import firestore
 
-# Parametri
 DELTA_THRESHOLD = 0.2
 MODEL_PATH = "model.joblib"
 
-# Variabili ambiente
 EMAIL_FROM = os.environ.get("EMAIL_FROM")
 EMAIL_TO = os.environ.get("EMAIL_TO")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 
-# Firestore
 db = firestore.Client()
 
 def send_email_alert(timestamp, actual, predicted):
     subject = "Smart Home - Anomalia rilevata"
-    body = (
-        f"Timestamp: {timestamp}\n"
-        f"Valore misurato: {actual}\n"
-        f"Valore previsto: {predicted:.2f}\n"
-        f"Delta: {abs(actual - predicted):.2f}"
-    )
+    body = f"Timestamp: {timestamp}\nValore misurato: {actual}\nValore previsto: {predicted:.2f}\nDelta: {abs(actual - predicted):.2f}"
 
     msg = MIMEText(body)
     msg["Subject"] = subject
@@ -39,7 +31,6 @@ def send_email_alert(timestamp, actual, predicted):
 def predict_and_alert(current_value, timestamp):
     try:
         model = joblib.load(MODEL_PATH)
-
         doc = db.collection("sensors").document("sensor1").get()
         if not doc.exists():
             return "Nessun dato storico", False
@@ -47,16 +38,14 @@ def predict_and_alert(current_value, timestamp):
         data = doc.to_dict().get("data", [])
         history = [float(x["use [kW]"]) for x in data if "use [kW]" in x]
         if len(history) < 4:
-            return "Dati insufficienti per predizione", False
+            return "Storico insufficiente", False
 
-        x_input = np.array(history[-4:]).reshape(1, -1)
-        predicted = model.predict(x_input)[0]
-
+        x_input = [history[-1], history[-2], history[-3], history[-4]]
+        predicted = model.predict([x_input])[0]
         delta = abs(current_value - predicted)
 
         if delta > DELTA_THRESHOLD:
             send_email_alert(timestamp, current_value, predicted)
-
             log_ref = db.collection("anomalies").document("log")
             entry = {
                 "timestamp": timestamp,
@@ -65,15 +54,13 @@ def predict_and_alert(current_value, timestamp):
                 "delta": round(delta, 2),
                 "sent": True
             }
-
             if log_ref.get().exists():
                 log_ref.update({"events": firestore.ArrayUnion([entry])})
             else:
                 log_ref.set({"events": [entry]})
-
             return "Anomalia rilevata", True
 
-        return "Nessuna anomalia", False
+        return "Tutto regolare", False
 
     except Exception as e:
         print("[ERROR] in predict_and_alert:", e)
